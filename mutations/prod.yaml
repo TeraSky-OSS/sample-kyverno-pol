@@ -1,0 +1,54 @@
+# Adds (mutates) labels based on creating username and tier specified as node selector
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-env-labels  
+spec:
+  background: false
+  rules:
+  - name: add-labels
+    preconditions:
+      all:
+      - key: "{{request.object.metadata.namespace}}"
+        operator: AnyNotIn
+        value:
+          - "kube-system"
+          - "tkg-system"
+          - "avi-system"
+          - "secretgen-controller"
+          - "vmware-system-antrea"
+          - "vmware-system-csi"
+          - "tanzu-system-monitoring"
+          - "tanzu-system-ingress"
+          - "cert-manager"
+          - "tanzu-system-service-discovery"
+          - "kyverno"
+          - "vmware-system-antrea"
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    mutate:
+      patchStrategicMerge:
+        metadata:
+          labels:
+            environment: prod
+            region: israel
+            createdBy: "{{request.userInfo.username}}"
+            tier: "{{split(split(request.object.spec.template.spec.nodeSelector | to_string(@),'node-role.kubernetes.io/')[1] || '','\"')[0]}}"
+        spec:
+          selector:
+            matchLabels:
+              environment: prod
+              region: israel
+              createdBy: "{{request.userInfo.username}}"
+              tier: "{{split(split(request.object.spec.template.spec.nodeSelector | to_string(@),'node-role.kubernetes.io/')[1] || '','\"')[0]}}"
+          template:
+            metadata:
+              labels:
+                environment: prod
+                region: israel
+                createdBy: "{{request.userInfo.username}}"
+                tier: "{{split(split(request.object.spec.template.spec.nodeSelector | to_string(@),'node-role.kubernetes.io/')[1] || '','\"')[0]}}"

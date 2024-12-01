@@ -1,0 +1,46 @@
+# Enforces existence of labels for deployments
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels   
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  - name: check-for-labels
+    preconditions:
+      all:
+      - key: "{{request.object.metadata.namespace}}"
+        operator: AnyNotIn
+        value: 
+          - "kube-system"
+          - "tkg-system"
+          - "avi-system"
+          - "secretgen-controller"
+          - "vmware-system-antrea"
+          - "vmware-system-csi"
+          - "tanzu-system-monitoring"
+          - "tanzu-system-ingress"
+          - "cert-manager"
+          - "tanzu-system-service-discovery"
+          - "kyverno"
+          - "vmware-system-antrea"
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "The required labels are not provided."
+      pattern:
+        metadata:
+          labels:
+            name: "?*"
+            build: "?*"
+            commit_id: "?*"
+            team_name: "?*"
+            app_name: "?*"
+            main_project: "?*"
+            sub_project: "?*"
+

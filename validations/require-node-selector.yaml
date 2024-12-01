@@ -1,0 +1,52 @@
+# enforces providing a Node selector for workloads, in this example must be web/app/db/mgmt
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-node-selector
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  - name: required-node-selector
+    preconditions:
+      all:
+      - key: "{{request.object.metadata.namespace}}"
+        operator: AnyNotIn
+        value: 
+          - "kube-system"
+          - "tkg-system"
+          - "avi-system"
+          - "secretgen-controller"
+          - "vmware-system-antrea"
+          - "vmware-system-csi"
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          - StatefulSet
+          - Job
+    validate:
+      message: The node selector must begin with the "node-role.kubernetes.io/" prefix followed by web,app,db or mgmt and an empty value.
+      anyPattern:
+        - spec:
+            template:
+              spec:
+                nodeSelector:
+                  node-role.kubernetes.io/web: ""
+        - spec:
+            template:
+              spec:
+                nodeSelector:
+                  node-role.kubernetes.io/app: ""
+        - spec:
+            template:
+              spec:
+                nodeSelector:
+                  node-role.kubernetes.io/db: ""
+        - spec:
+            template:
+              spec:
+                nodeSelector:
+                  node-role.kubernetes.io/mgmt: ""
